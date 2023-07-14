@@ -1,0 +1,53 @@
+version: "3.7"
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: docker/Dockerfile
+      args:
+        USER: sammy
+        UID: 1000
+    ports:
+      - 5173:5173
+    image: interface-image
+    container_name: interface-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www:delegated
+      - ./docker/docker-compose/php/php.ini:/usr/local/etc/php/php.ini:delegated
+    networks:
+      - interface
+
+  db:
+    image: mariadb:10.4
+    container_name: interface-db
+    restart: unless-stopped
+    ports:
+      - 3309:3306
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+    volumes:
+      - ./docker/docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - interface
+
+  nginx:
+    image: nginx:alpine
+    container_name: interface-nginx
+    restart: unless-stopped
+    ports:
+      - 8002:80
+    volumes:
+      - ./:/var/www:delegated
+      - ./docker/docker-compose/nginx:/etc/nginx/conf.d/:delegated
+    networks:
+      - interface
+
+networks:
+  interface:
+    name: interface
+    driver: bridge
